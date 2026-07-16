@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SmartPen</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f1a;
+      color: #eee;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 15px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: #1a1a2e;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      font-size: 20px;
+      color: #00d4ff;
+    }
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff4757;
+    }
+    .status-dot.connected { background: #2ed573; }
+
+    /* Connect Section */
+    .connect-section {
+      padding: 30px 15px;
+      text-align: center;
+    }
+    .connect-btn {
+      padding: 15px 40px;
+      font-size: 18px;
+      background: #00d4ff;
+      color: #000;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .connect-btn:disabled {
+      background: #444;
+      color: #888;
+    }
+
+    /* Notes List */
+    .notes-section { display: none; }
+    .notes-section.active { display: block; }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      background: #1a1a2e;
+    }
+    .section-header h2 {
+      font-size: 16px;
+      color: #888;
+    }
+    .add-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #00d4ff;
+      color: #000;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notes-list {
+      list-style: none;
+    }
+    .note-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      background: #1a1a2e;
+      border-bottom: 1px solid #252540;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .note-item:hover { background: #252540; }
+    .note-item.active { background: #2a2a4a; border-left: 3px solid #00d4ff; }
+    .note-icon {
+      width: 40px;
+      height: 40px;
+      background: #252540;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-size: 20px;
+    }
+    .note-info { flex: 1; }
+    .note-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .note-preview {
+      font-size: 13px;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+    }
+    .note-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .note-actions button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-view { background: #00d4ff; color: #000; }
+    .btn-delete { background: #ff4757; color: #fff; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    .empty-state p { margin-bottom: 20px; }
+
+    /* Editor Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 100;
+    }
+    .modal.active { display: flex; flex-direction: column; }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      background: #1a1a2e;
+      border-bottom: 1px solid #333;
+    }
+    .modal-header h2 {
+      flex: 1;
+      font-size: 18px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0 10px;
+    }
+    .modal-body {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #888;
+      font-size: 14px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background: #1a1a2e;
+      border: 2px solid #333;
+      border-radius: 8px;
+      color: #fff;
+    }
+    .form-group input:focus {
+      border-color: #00d4ff;
+      outline: none;
+    }
+    .form-group textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 200px;
+      padding: 12px;
+      font-size: 16px;
+      background: #1a1a2e;
+      border: 2px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      resize: none;
+    }
+    .form-group textarea:focus {
+      border-color: #00d4ff;
+      outline: none;
+    }
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    .modal-footer {
+      padding: 15px;
+      background: #1a1a2e;
+      border-top: 1px solid #333;
+    }
+    .save-btn {
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      background: #2ed573;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .save-btn:disabled {
+      background: #444;
+      color: #888;
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 3px;
+      background: #00d4ff;
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 200;
+    }
+    .toast.show { opacity: 1; }
+    .toast.success { background: #2ed573; color: #000; }
+    .toast.error { background: #ff4757; }
+
+    /* View Modal */
+    .view-content {
+      background: #1a1a2e;
+      padding: 15px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.6;
+      flex: 1;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SmartPen</h1>
+    <div class="status-dot" id="statusDot"></div>
+  </header>
+
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- Connect Section -->
+  <div class="connect-section" id="connectSection">
+    <p style="color:#666; margin-bottom:20px;">Connect to your SmartPen device</p>
+    <button class="connect-btn" id="connectBtn">Connect</button>
+    <p style="color:#444; margin-top:30px; font-size:13px;">Chrome only (Android, Windows, Mac)</p>
+  </div>
+
+  <!-- Notes Section -->
+  <div class="notes-section" id="notesSection">
+    <div class="section-header">
+      <h2>Notes on Device</h2>
+      <button class="add-btn" id="addNoteBtn">+</button>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <p>No notes yet</p>
+      <button class="connect-btn" onclick="openEditor()">Create First Note</button>
+    </div>
+
+    <ul class="notes-list" id="notesList"></ul>
+  </div>
+
+  <!-- Editor Modal -->
+  <div class="modal" id="editorModal">
+    <div class="modal-header">
+      <h2 id="editorTitle">New Note</h2>
+      <button class="modal-close" onclick="closeEditor()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="noteTitleInput" placeholder="Enter note title..." maxlength="20">
+      </div>
+      <div class="form-group" style="flex:1; display:flex; flex-direction:column;">
+        <label>Content</label>
+        <textarea id="noteContentInput" placeholder="Write your note here..."></textarea>
+        <div class="char-count"><span id="charCount">0</span> characters</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="save-btn" id="saveNoteBtn">Save to Device</button>
+    </div>
+  </div>
+
+  <!-- View Modal -->
+  <div class="modal" id="viewModal">
+    <div class="modal-header">
+      <h2 id="viewTitle">Note</h2>
+      <button class="modal-close" onclick="closeView()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="view-content" id="viewContent"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="save-btn" onclick="editCurrentNote()" style="background:#00d4ff;">Edit Note</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SERVICE_UUID = '12345678-1234-1234-1234-1234567890ab';
+    const CHAR_WRITE_UUID = 'abcd1234-5678-1234-5678-abcdef123456';
+    const CHAR_READ_UUID = 'abcd1234-5678-1234-5678-abcdef123457';
+    const CHUNK_SIZE = 20;   // Very small chunks for BLE MTU compatibility
+    const CHUNK_DELAY = 30;  // ms between chunks
+
+    let device = null;
+    let writeChar = null;
+    let readChar = null;
+    let notes = [];
+    let editingNote = null;
+    let currentViewNote = null;
+    let pendingNoteTitle = null;  // Track which note we're waiting for
+    let receiveBuffer = '';       // Buffer for accumulating BLE data
+    let receiveTimeout = null;    // Timeout for receiving chunks
+
+    const connectBtn = document.getElementById('connectBtn');
+    const connectSection = document.getElementById('connectSection');
+    const notesSection = document.getElementById('notesSection');
+    const statusDot = document.getElementById('statusDot');
+    const notesList = document.getElementById('notesList');
+    const emptyState = document.getElementById('emptyState');
+    const progressBar = document.getElementById('progressBar');
+
+    // Connect
+    connectBtn.addEventListener('click', connect);
+
+    async function connect() {
+      try {
+        connectBtn.textContent = 'Scanning...';
+        connectBtn.disabled = true;
+
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'SmartPen' }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        device.addEventListener('gattserverdisconnected', onDisconnected);
+
+        connectBtn.textContent = 'Connecting...';
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+
+        writeChar = await service.getCharacteristic(CHAR_WRITE_UUID);
+        readChar = await service.getCharacteristic(CHAR_READ_UUID);
+
+        await readChar.startNotifications();
+        readChar.addEventListener('characteristicvaluechanged', onDataReceived);
+
+        statusDot.classList.add('connected');
+        connectSection.style.display = 'none';
+        notesSection.classList.add('active');
+
+        showToast('Connected!', 'success');
+        fetchNotesList();
+
+      } catch (error) {
+        console.error(error);
+        showToast('Connection failed', 'error');
+        connectBtn.textContent = 'Connect';
+        connectBtn.disabled = false;
+      }
+    }
+
+    function onDisconnected() {
+      statusDot.classList.remove('connected');
+      notesSection.classList.remove('active');
+      connectSection.style.display = 'block';
+      connectBtn.textContent = 'Connect';
+      connectBtn.disabled = false;
+      showToast('Disconnected', 'error');
+    }
+
+    // Process complete note buffer
+    function processNoteBuffer() {
+      if (receiveTimeout) {
+        clearTimeout(receiveTimeout);
+        receiveTimeout = null;
+      }
+
+      if (!receiveBuffer.startsWith('<<NOTE>>')) {
+        receiveBuffer = '';
+        return;
+      }
+
+      // Remove any END marker that might be in buffer
+      let buffer = receiveBuffer.replace('<<END>>', '');
+
+      const data = buffer.substring(8);
+      const sepIdx = data.indexOf('<<SEP>>');
+      if (sepIdx > -1) {
+        const title = data.substring(0, sepIdx);
+        const content = data.substring(sepIdx + 7);
+        console.log('[VIEW NOTE]', title, 'content length:', content.length);
+
+        // Only show if this is the note we requested
+        if (!pendingNoteTitle || title === pendingNoteTitle) {
+          showNoteView(title, content);
+          pendingNoteTitle = null;
+        } else {
+          console.warn('[MISMATCH] Expected:', pendingNoteTitle, 'Got:', title);
+        }
+      }
+      receiveBuffer = '';
+    }
+
+    // Receive data from device
+    function onDataReceived(event) {
+      const decoder = new TextDecoder();
+      const value = decoder.decode(event.target.value);
+
+      console.log('[BLE RX]', value.substring(0, 100), value.length > 100 ? '...' : '');
+
+      // Handle LIST response (usually small enough to fit in one packet)
+      if (value.startsWith('<<LIST>>')) {
+        receiveBuffer = '';
+        if (receiveTimeout) clearTimeout(receiveTimeout);
+        const list = value.substring(8).trim();
+        notes = list ? list.split('|').map(title => ({ title: title.trim(), content: '' })) : [];
+        console.log('[NOTES]', notes.map(n => `"${n.title}"`));
+        renderNotes();
+        return;
+      }
+
+      // Handle END marker - process complete message
+      if (value.includes('<<END>>')) {
+        console.log('[BLE RX] End marker received, buffer size:', receiveBuffer.length);
+        // Add any content before END marker
+        const endIdx = value.indexOf('<<END>>');
+        if (endIdx > 0) {
+          receiveBuffer += value.substring(0, endIdx);
+        }
+        processNoteBuffer();
+        return;
+      }
+
+      // Handle NOTE response - accumulate chunks
+      if (value.startsWith('<<NOTE>>')) {
+        receiveBuffer = value;  // Start new buffer
+      } else if (receiveBuffer) {
+        receiveBuffer += value;  // Accumulate fragments
+      }
+
+      // Set timeout to process buffer if END marker is lost
+      if (receiveBuffer && receiveBuffer.startsWith('<<NOTE>>')) {
+        if (receiveTimeout) clearTimeout(receiveTimeout);
+        receiveTimeout = setTimeout(() => {
+          console.log('[TIMEOUT] Processing buffer without END marker, size:', receiveBuffer.length);
+          processNoteBuffer();
+        }, 2000);  // 2 second timeout
+      }
+    }
+
+    // Fetch notes list
+    async function fetchNotesList() {
+      if (!writeChar) return;
+      const encoder = new TextEncoder();
+      await writeChar.writeValue(encoder.encode('<<GETLIST>>'));
+    }
+
+    // Render notes list
+    function renderNotes() {
+      if (notes.length === 0) {
+        emptyState.style.display = 'block';
+        notesList.innerHTML = '';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      notesList.innerHTML = '';
+      notes.forEach((note, idx) => {
+        const li = document.createElement('li');
+        li.className = 'note-item';
+        li.innerHTML = `
+          <div class="note-icon">📝</div>
+          <div class="note-info">
+            <div class="note-title">${escapeHtml(note.title)}</div>
+            <div class="note-preview">Tap to view</div>
+          </div>
+          <div class="note-actions">
+            <button class="btn-delete">Delete</button>
+          </div>
+        `;
+        li.addEventListener('click', () => viewNote(note.title));
+        li.querySelector('.btn-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteNote(note.title);
+        });
+        notesList.appendChild(li);
+      });
+    }
+
+    // View note
+    async function viewNote(title) {
+      if (!writeChar) return;
+      console.log('[VIEW REQUEST]', title);
+      pendingNoteTitle = title;  // Track what we're requesting
+      receiveBuffer = '';        // Clear any stale data
+      currentViewNote = title;
+      const encoder = new TextEncoder();
+      await writeChar.writeValue(encoder.encode('<<GET>>' + title));
+    }
+
+    function showNoteView(title, content) {
+      document.getElementById('viewTitle').textContent = title;
+      document.getElementById('viewContent').textContent = content;
+      document.getElementById('viewModal').classList.add('active');
+      currentViewNote = { title, content };
+    }
+
+    function closeView() {
+      document.getElementById('viewModal').classList.remove('active');
+    }
+
+    function editCurrentNote() {
+      if (currentViewNote) {
+        closeView();
+        openEditor(currentViewNote.title, currentViewNote.content);
+      }
+    }
+
+    // Add note button
+    document.getElementById('addNoteBtn').addEventListener('click', () => openEditor());
+
+    // Editor
+    function openEditor(title = '', content = '') {
+      editingNote = title || null;
+      document.getElementById('editorTitle').textContent = title ? 'Edit Note' : 'New Note';
+      document.getElementById('noteTitleInput').value = title;
+      document.getElementById('noteContentInput').value = content;
+      document.getElementById('charCount').textContent = content.length;
+      document.getElementById('noteTitleInput').disabled = !!title;
+      document.getElementById('editorModal').classList.add('active');
+    }
+
+    function closeEditor() {
+      document.getElementById('editorModal').classList.remove('active');
+    }
+
+    // Character count
+    document.getElementById('noteContentInput').addEventListener('input', (e) => {
+      document.getElementById('charCount').textContent = e.target.value.length;
+    });
+
+    // Save note
+    document.getElementById('saveNoteBtn').addEventListener('click', saveNote);
+
+    async function saveNote() {
+      const title = document.getElementById('noteTitleInput').value.trim();
+      const content = document.getElementById('noteContentInput').value;
+
+      if (!title) {
+        showToast('Enter a title', 'error');
+        return;
+      }
+
+      if (!writeChar) return;
+
+      const saveBtn = document.getElementById('saveNoteBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      try {
+        const encoder = new TextEncoder();
+
+        // Start new note
+        await writeChar.writeValue(encoder.encode('<<NEW>>' + title));
+        await delay(150);  // Wait for device to prepare buffer
+
+        // Send content in chunks
+        if (content.length > 0) {
+          const chunkContent = CHUNK_SIZE - 7;  // 7 = "<<ADD>>".length
+          const chunks = splitIntoChunks(content, chunkContent);
+
+          for (let i = 0; i < chunks.length; i++) {
+            await writeChar.writeValue(encoder.encode('<<ADD>>' + chunks[i]));
+            progressBar.style.width = ((i + 1) / chunks.length * 100) + '%';
+            await delay(CHUNK_DELAY);
+          }
+        }
+
+        // Save - give device time to process all chunks
+        await delay(300);
+        await writeChar.writeValue(encoder.encode('<<SAVE>>'));
+        await delay(200);
+
+        progressBar.style.width = '0%';
+        showToast('Saved!', 'success');
+        closeEditor();
+        fetchNotesList();
+
+      } catch (error) {
+        console.error(error);
+        showToast('Save failed', 'error');
+      }
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save to Device';
+    }
+
+    // Delete note
+    async function deleteNote(title) {
+      if (!confirm('Delete "' + title + '"?')) return;
+      if (!writeChar) return;
+
+      try {
+        const encoder = new TextEncoder();
+        await writeChar.writeValue(encoder.encode('<<DEL>>' + title));
+        await delay(100);
+        showToast('Deleted', 'success');
+        fetchNotesList();
+      } catch (error) {
+        showToast('Delete failed', 'error');
+      }
+    }
+
+    // Helpers
+    function splitIntoChunks(text, size) {
+      const chunks = [];
+      for (let i = 0; i < text.length; i += size) {
+        chunks.push(text.substring(i, i + size));
+      }
+      return chunks;
+    }
+
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function showToast(message, type = '') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast show ' + type;
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>
